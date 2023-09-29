@@ -36,15 +36,13 @@ class Interpreter:
             self.methods_names.append(method["name"])
         self.methods_names.pop(0)  # remove init method
 
-        self.memory = {}
-        self.stack = []
-
         self.bytecodes = {}  # Initialize the bytecodes dictionary
 
         for method_name in self.methods_names:
             self.bytecodes[method_name] = self.methods_dict[method_name]['code']['bytecode']
 
         self.stack = []
+        self.memory = []
 
         # print(self.methods_dict[self.methods_names[0]]['code']['bytecode'])
 
@@ -52,18 +50,51 @@ class Interpreter:
         self.stack.append(op['value']['value'])
 
     def run(self):
-        self._runBytecode(self.bytecodes['alwaysThrows1'])
+        for i in range(0, 2):
+            try:
+
+                method = self.methods_dict[self.methods_names[i]]
+
+                # reset stack and memory
+                self.stack = []
+                self.memory = []
+
+                # check for method parameters
+                if method['params']:
+                    for p in method['params']:
+                        # if param is int add abstraction to stack
+                        if (p['type']['base'] == 'int'):
+                            self.memory.append('0')
+                self._runBytecode(
+                    self.bytecodes[method['name']])
+            except Exception as e:
+                print(f'{self.methods_names[i]}: Yes, {e}')
 
     def _runBytecode(self, bc):
         for op in bc:
+            # print(self.memory, self.stack, op['opr'])
             if op['opr'] == 'push':
                 self._push(op)
-            if op['opr'] == 'binary':
+            elif op['opr'] == 'store':
+                if len(self.memory)-1 < op['index']:
+                    self.memory.append(self.stack[-1])
+                else:
+                    self.memory[op['index']] = self.stack[-1]
+            elif op['opr'] == 'load':
+                self.stack.append(self.memory[op['index']])
+            elif op['opr'] == 'binary':
+
+                if op['operant'] == 'sub':
+                    # which one comes first?
+                    sub = self.stack[-1] - self.stack[-2]
+                    self.stack.append(sub)
+
                 if op['operant'] == 'div':
                     if (self.stack[-1] == 0):
                         raise Exception("ArithmeticException")
 
         print(self.stack)
+        print(self.memory)
 
     # def run(self, f: tuple[Locals, OperStack, ProgramCounter]):
     #     self.stack.append(f)
